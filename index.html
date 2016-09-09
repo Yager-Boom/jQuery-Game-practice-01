@@ -1,0 +1,201 @@
+<html>
+	<head>
+		<title>yager's web</title>
+		<script src="jquery-3.1.0.min.js"></script>
+		<script>
+		// 隨機整數
+			function getRandomInt(min,max){
+				return Math.floor(Math.random()*(max-min+1))+min;
+			}
+
+			//當DOM讀取完畢執行 
+			$(function(){
+					var $body = $("body"),
+						$stage = $("#stage"),
+						$player = $("#player"),
+						$score = $("#score"),
+						enemy_fall_speed = 3,
+						enemy_fall_max_speed = 12,
+						enemy_wave=0,
+						enemy_wave_gap=250,
+						hit_test_r = 20,
+						can_control_player = true,
+						score = 0,
+						score_add = 5,
+						loop,
+						speedup;
+
+					//左鍵點擊 
+					$body.click(function(){
+						if(can_control_player)
+						{
+							var x = parseInt($player.css("left"));
+							if(x>10)
+							$player.css("left",x-100+"px");
+						}
+					});
+
+					// 右鍵點擊
+					$body.contextmenu(function(e){
+						e.preventDefault();
+						if(can_control_player)
+						{
+							var x = parseInt($player.css("left"));
+							if(x<210)
+							$player.css("left",x+100+"px");
+						}
+					});
+
+					// 重新開始
+					function initGame(){
+						enemy_fall_speed = 3,
+						enemy_wave=0,
+						can_control_player = true,
+						score = 0,
+						score_add = 5;
+						// player初始位置
+						$player.css("left",($stage.width()-$player.width())/2+"px");
+						$player.css("top",$stage.height()-$player.height());
+
+						// score初始位置
+						$score.css("left",$stage.width()-$score.width()-5+"px");
+						$score.css("top","5px");
+
+						// 生成敵人
+						createEnemy();
+
+						// 計時器重設
+						loop = setInterval(loop_func,1000/60);
+						speedup = setInterval(speedup_func,1000);
+					}
+					initGame();
+
+
+					// 生成障礙物
+					function createEnemy(){
+						var enemy_pos =[10,110,210];
+						for(i=0;i<2;i++)
+						{
+							$stage.append("<div class='sprite enemy'></div>");
+							var $enemy = $stage.find(".enemy:last");
+							$enemy.data("wave",enemy_wave);
+							var rand_index = getRandomInt(0,enemy_pos.length-1);
+							var enemy_x = enemy_pos.splice(rand_index,1)[0]; //障礙物起始位置
+							$enemy.css("left",enemy_x+"px");
+							$enemy.css("top",-($enemy.height())+"px");
+						}
+					}
+
+					// 遊戲結束
+					function endGame(){
+						can_control_player=false;
+						clearInterval(loop);
+						clearInterval(speedup_func);
+						//跳出結束畫面
+						$stage.append("<div id='gameover'>GG</div>");
+						$gameover = $('#gameover');
+						$("#gameover").css({
+							"background":"black",
+							"opacity":"0.7",
+							"width":"100%",
+							"height":"100%",
+							"position":"relative",
+							"color":"white",
+							"line-height":"500px",
+							"text-align":"center",
+							"font-size":"40px"
+						});
+						$gameover.click(function(){
+							$gameover.unbind("click");
+							// 清除GG頁面
+							$gameover.remove();
+							// 清空enemy
+							$stage.find(".enemy").remove();
+
+							initGame();
+						})
+					}
+
+
+					// 計時器(落下動畫與碰撞機制)
+					function loop_func(){
+						$stage.find(".enemy").each(function(){
+							var enemy_y = parseInt($(this).css("top"));
+							if(enemy_y>enemy_wave_gap && $(this).data("wave") == enemy_wave){
+								enemy_wave++;
+								createEnemy();
+							}
+							var px = parseInt($player.css("left"))+$player.width()/2;
+							var py = parseInt($player.css("top"))+$player.height()/2;
+							var ex = parseInt($(this).css("left"))+$(this).width()/2;
+							var ey = parseInt($(this).css("top"))+$(this).height()/2;
+							var p_e_dist = Math.sqrt(Math.pow(px-ex,2)+Math.pow(py-ey,2));
+							if(hit_test_r*2 > p_e_dist){
+								endGame();
+							}
+							if(enemy_y>$stage.height()){
+								$(this).remove();
+								return;
+							}
+							$(this).css("top",enemy_y+enemy_fall_speed+"px");
+							$score.html(score);
+							score+=score_add;
+						});
+					}
+
+					//每秒增加落下速度
+					function speedup_func(){
+						if(enemy_fall_speed>=enemy_fall_max_speed)
+						{
+							enemy_fall_speed = 12
+							clearIntercal(speedup);
+						}
+						enemy_fall_speed += 0.1;
+						score_add*=1;
+					}
+				})
+		</script>
+		<style>
+			body{					
+					text-align: center;
+				}
+				#stage{
+					display: inline-block;
+					position: relative;
+					text-align: left;
+					background: black;
+					top:50px;
+					width: 300px;
+					height: 500px;
+					overflow: hidden;
+				}
+				.sprite{
+					display: inline-block;
+					position:absolute;
+					left: -10px;
+					width: 80px;
+					height: 80px;
+				}
+				.player{
+					background: #FF0000;
+				}
+				.enemy{
+					background: #FFFF00;
+				}
+				.score{
+					color: white;
+					font-size: 24px;
+					font-weight: bolder;
+					width: 100%;
+					height: auto;
+					text-align: right;
+				}
+		</style>
+	</head>
+	<body>
+		<div id="stage">
+			<div id="score" class="sprite score">000000</div>
+			<div id="player" class="sprite player"></div>
+		</div>
+	</body>
+</html>
